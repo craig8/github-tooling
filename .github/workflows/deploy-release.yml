@@ -183,92 +183,92 @@ jobs:
           # we don't really persist right version in pyproject.toml to figure out the next version. we use git tags.
           git restore pyproject.toml
       
-      #--------------------------------------------------------------
-      # Create a new releases/new_tag
-      #--------------------------------------------------------------
-      - name: Create a new releases branch
-        run: |
-          git checkout -b releases/${NEW_TAG}
-          git push --set-upstream origin releases/${NEW_TAG}
+      # #--------------------------------------------------------------
+      # # Create a new releases/new_tag
+      # #--------------------------------------------------------------
+      # - name: Create a new releases branch
+      #   run: |
+      #     git checkout -b releases/${NEW_TAG}
+      #     git push --set-upstream origin releases/${NEW_TAG}
 
-      #--------------------------------------------------------------
-      # merge changes back to main
-      #--------------------------------------------------------------
-      - name: Merge changes back to main
-        run: |
-          git checkout main
-          git merge ${{ inputs.merge-strategy }} releases/${NEW_TAG}
-          git push 
+      # #--------------------------------------------------------------
+      # # merge changes back to main
+      # #--------------------------------------------------------------
+      # - name: Merge changes back to main
+      #   run: |
+      #     git checkout main
+      #     git merge ${{ inputs.merge-strategy }} releases/${NEW_TAG}
+      #     git push 
 
-      - name: Run tests on main branch
-        id: run-tests-on-main
-        run: |
-          poetry run pytest --timeout=${{ inputs.run-tests-wait }} tests
-        continue-on-error: true
+      # - name: Run tests on main branch
+      #   id: run-tests-on-main
+      #   run: |
+      #     poetry run pytest --timeout=${{ inputs.run-tests-wait }} tests
+      #   continue-on-error: true
 
-      - name: Do something with a failing build
-        if: steps.run-tests-on-main.outcome != 'success'
-        run: |
-          echo "tests on main did not succeed. Outcome is ${{ steps.run-tests-on-main.outcome }}"
-          git reset --hard HEAD~1 
-          git push origin HEAD --force
-          git branch -d releases/${NEW_TAG}
-          git push origin --delete releases/${NEW_TAG}
-          echo "reverted changes to main and removed release branch"
-          exit 1
+      # - name: Do something with a failing build
+      #   if: steps.run-tests-on-main.outcome != 'success'
+      #   run: |
+      #     echo "tests on main did not succeed. Outcome is ${{ steps.run-tests-on-main.outcome }}"
+      #     git reset --hard HEAD~1 
+      #     git push origin HEAD --force
+      #     git branch -d releases/${NEW_TAG}
+      #     git push origin --delete releases/${NEW_TAG}
+      #     echo "reverted changes to main and removed release branch"
+      #     exit 1
 
-      - name: Create build artifacts
-        run: |
-          # set the right version in pyproject.toml before build and publish
-          poetry version ${NEW_TAG#?} 
-          poetry build -vvv 
+      # - name: Create build artifacts
+      #   run: |
+      #     # set the right version in pyproject.toml before build and publish
+      #     poetry version ${NEW_TAG#?} 
+      #     poetry build -vvv 
 
-      - uses: ncipollo/release-action@v1
-        with:
-          artifacts: "dist/*.gz,dist/*.whl"
-          artifactErrorsFailBuild: true
-          generateReleaseNotes: true
-          commit: ${{ github.ref }}
-          # check bump-rule and set accordingly
-          prerelease: ${{ inputs.bump-rule == 'prerelease'  }}
-          tag: ${{ env.NEW_TAG }}
-          token: ${{ secrets.git-token }}
+      # - uses: ncipollo/release-action@v1
+      #   with:
+      #     artifacts: "dist/*.gz,dist/*.whl"
+      #     artifactErrorsFailBuild: true
+      #     generateReleaseNotes: true
+      #     commit: ${{ github.ref }}
+      #     # check bump-rule and set accordingly
+      #     prerelease: ${{ inputs.bump-rule == 'prerelease'  }}
+      #     tag: ${{ env.NEW_TAG }}
+      #     token: ${{ secrets.git-token }}
 
-      - name: Publish to test pypi
-        if: ${{ inputs.publish-to-test-pypi }}
-        run: |
-          poetry config repositories.test-pypi https://test.pypi.org/legacy/
-          poetry config pypi-token.test-pypi ${{ secrets.pypi-token }}
-          POETRY_PUBLISH_OPTIONS= "-r test-pypi"
-          echo "POETRY_PUBLISH_OPTIONS=$(echo ${POETRY_PUBLISH_OPTIONS})" >> $GITHUB_ENV
+      # - name: Publish to test pypi
+      #   if: ${{ inputs.publish-to-test-pypi }}
+      #   run: |
+      #     poetry config repositories.test-pypi https://test.pypi.org/legacy/
+      #     poetry config pypi-token.test-pypi ${{ secrets.pypi-token }}
+      #     POETRY_PUBLISH_OPTIONS= "-r test-pypi"
+      #     echo "POETRY_PUBLISH_OPTIONS=$(echo ${POETRY_PUBLISH_OPTIONS})" >> $GITHUB_ENV
 
-      - name: Publish to test pypi
-        id: publish-to-pypi
-        run: |
-          echo "${POETRY_PUBLISH_OPTIONS}"
-          exit 1
-          #poetry publish -r test-pypi
-        continue-on-error: true
+      # - name: Publish to test pypi
+      #   id: publish-to-pypi
+      #   run: |
+      #     echo "${POETRY_PUBLISH_OPTIONS}"
+      #     exit 1
+      #     #poetry publish -r test-pypi
+      #   continue-on-error: true
 
-      - name: if publish to pypi failed revert main and delete release branch
-        if: steps.publish-to-pypi.outcome != 'success'
-        run: |
-          echo "publish to pypi did not succeed. Outcome is ${{ steps.publish-to-pypi.outcome }}"
-          git reset --hard HEAD~1 
-          git push origin HEAD --force
-          git branch -d releases/${NEW_TAG}
-          git push origin --delete releases/${NEW_TAG}
-          echo "reverted changes to main and removed release branch"
+      # - name: if publish to pypi failed revert main and delete release branch
+      #   if: steps.publish-to-pypi.outcome != 'success'
+      #   run: |
+      #     echo "publish to pypi did not succeed. Outcome is ${{ steps.publish-to-pypi.outcome }}"
+      #     git reset --hard HEAD~1 
+      #     git push origin HEAD --force
+      #     git branch -d releases/${NEW_TAG}
+      #     git push origin --delete releases/${NEW_TAG}
+      #     echo "reverted changes to main and removed release branch"
 
-      - name: if publish to pypi failed delete release and tag on github
-        if: steps.publish-to-pypi.outcome != 'success'
-        uses: dev-drprasad/delete-tag-and-release@v0.2.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.git-token }}
-        with:
-          tag_name: ${{ env.NEW_TAG }}
+      # - name: if publish to pypi failed delete release and tag on github
+      #   if: steps.publish-to-pypi.outcome != 'success'
+      #   uses: dev-drprasad/delete-tag-and-release@v0.2.1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.git-token }}
+      #   with:
+      #     tag_name: ${{ env.NEW_TAG }}
 
-      - name: if publish to pypi failed delete release and tag on github
-        if: steps.publish-to-pypi.outcome != 'success'
-        run: |
-          exit 1
+      # - name: if publish to pypi failed delete release and tag on github
+      #   if: steps.publish-to-pypi.outcome != 'success'
+      #   run: |
+      #     exit 1
