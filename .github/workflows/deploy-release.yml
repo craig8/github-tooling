@@ -8,6 +8,9 @@ on:
         required: false
         default: ''
         type: string
+      release-version-specified:
+        type: boolean
+        description: 'Use release version instead of bumping version from version tag'
       first-release-version:
         description: 'Version number to use if this is the first release'
         required: false
@@ -132,6 +135,7 @@ jobs:
       # bump version number for patch
       #----------------------------------------------
       - name: Bump Version
+        if: ${{ inputs.release-version-specified }} == 'false'
         run: |
           # current_tag is the last tagged release in the repository.   From there
           # we need to remove the v from the beginning of the tag.
@@ -161,8 +165,23 @@ jobs:
           # we don't want to update pyproject.toml yet. don't want this change to create merge conflict.
           # we don't really persist right version in pyproject.toml to figure out the next version. we use git tags.
           git restore pyproject.toml
+      
+      - name: Set Version
+        if: ${{ inputs.release-version-specified }} == 'true'
+        run: |
+          echo "Setting version to ${{ inputs.first-release-version }}"
+          poetry version ${{ inputs.first-release-version }}
           
+          NEW_TAG=v$(poetry version --short)
 
+          # Finally because we want to be able to use the variable in later
+          # steps we set a NEW_TAG environmental variable
+          echo "NEW_TAG=$(echo ${NEW_TAG})" >> $GITHUB_ENV
+          
+          # we don't want to update pyproject.toml yet. don't want this change to create merge conflict.
+          # we don't really persist right version in pyproject.toml to figure out the next version. we use git tags.
+          git restore pyproject.toml
+      
       #--------------------------------------------------------------
       # Create a new releases/new_tag
       #--------------------------------------------------------------
