@@ -1,0 +1,22 @@
+---
+#- volttron-agent-watcher
+#- volttron-core
+#- volttron-dnp3-outstation
+#- volttron-emailer
+#- volttron-lib-auth
+#- volttron-bacnet-proxy
+#- volttron-lib-base-driver
+#- volttron-lib-bacnet-driver
+#- volttron-lib-fake-driver
+#- volttron-platform-driver
+#- volttron-lib-base-historian
+#- volttron-lib-sql-historian
+- volttron-lib-zmq
+#- volttron-listener
+#- volttron-log-statistics
+#- volttron-postgresql-historian
+#- volttron-sqlite-historian
+#- volttron-sysmon
+#- volttron-threshold-detection
+#- volttron-topic-watcher
+#- volttron-zmq
